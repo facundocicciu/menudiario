@@ -84,7 +84,7 @@
         .btn:hover { background: #20ba5a; transform: translateY(-2px); }
         .admin-section { margin-top: 40px; border-top: 2px solid #eee; padding-top: 20px; text-align: center; }
         .btn-admin { background: #7f8c8d; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; }
-        .hidden { display: none !important; }
+        .hidden { display: none; }
         #admin-panel { background: #f9f9f9; padding: 20px; border-radius: 10px; margin-top: 20px; border: 1px solid #ddd; }
         .admin-dish-input { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 10px; }
     </style>
@@ -101,8 +101,7 @@
 
     <main>
         <form id="order-form">
-            <div id="menu-container">
-                </div>
+            <div id="menu-container"></div>
 
             <hr style="border: 0; border-top: 2px dashed var(--secondary); margin: 30px 0;">
 
@@ -140,25 +139,23 @@
             </div>
             
             <h4>Editar Platos y Precios (Vaciar nombre para ocultar)</h4>
-            <div id="admin-dishes-container">
-                </div>
+            <div id="admin-dishes-container"></div>
             <button type="button" class="btn" style="background:#3498db;" onclick="guardarAdmin()">💾 Guardar Cambios del Día</button>
         </div>
     </div>
 </div>
 
 <script>
-    // Credenciales e integración directa de Supabase
-    const SUPABASE_URL = "https://akdytzcevheorkqmjhuc.supabase.co"; 
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFrZHl0emNldmhlb3JrcW1qaHVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTY5MzMsImV4cCI6MjA5NTYzMjkzM30.fhAmo-APIVjSfzKQ7B1W5eFrR7h3B4fCQUEWu_U_4Pk"; 
-
+    // Configuración e integración con tu Supabase original
+    const SUPABASE_URL = "https://akdytzcevheorkqmjhuc.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFrZHl0emNldmhlb3JrcW1qaHVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTY5MzMsImV4cCI6MjA5NTYzMjkzM30.fhAmo-APIVjSfzKQ7B1W5eFrR7h3B4fCQUEWu_U_4Pk";
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const WHATSAPP_NUM = "5491141819796"; 
     const ADMIN_USER = "viandasmagma";
     const ADMIN_PASS = "Rebizzo4810";
 
-    // Datos iniciales de arranque inmediato
+    // Valores iniciales de base por si acaso
     let appData = {
         fecha: "29 / 05 / 2026",
         platos: [
@@ -168,20 +165,20 @@
         ]
     };
 
-    // Crear los 30 renglones vacíos
+    // Estructurar el casillero completo de los 30 platos reglamentarios
     for (let i = appData.platos.length + 1; i <= 30; i++) {
         appData.platos.push({ id: i, nombre: "", precio: 0 });
     }
 
-    // Estrategia de carga instantánea sin bloqueos
+    // Inicialización asincrónica para dar prioridad a la visualización
     function inicializarApp() {
-        // 1. Mostrar de inmediato lo que esté guardado localmente en el navegador para que ande rápido
+        // Carga rápida del almacenamiento local para que la pantalla aparezca ya dibujada
         if(localStorage.getItem('magma_menu_data')) {
             appData = JSON.parse(localStorage.getItem('magma_menu_data'));
         }
         renderApp();
 
-        // 2. Intentar traer los datos frescos de Supabase en segundo plano sin colgar los botones
+        // Trae los datos de internet en segundo plano sin congelar las funciones locales
         bajarDatosDeLaNube();
     }
 
@@ -203,7 +200,7 @@
             }
             renderApp();
         } catch(err) {
-            console.log("Supabase no disponible momentáneamente. Usando almacenamiento local autónomo.");
+            console.log("Carga en la nube omitida: usando datos locales seguros.");
         }
     }
 
@@ -218,7 +215,7 @@
         adminContainer.innerHTML = '';
 
         appData.platos.forEach((plato) => {
-            if(plato.nombre && plato.nombre.trim() !== "") {
+            if(plato.nombre.trim() !== "") {
                 let options = '<option value="0">0</option>';
                 for(let i=1; i<=20; i++) {
                     options += `<option value="${i}">${i}</option>`;
@@ -237,32 +234,25 @@
 
             adminContainer.innerHTML += `
                 <div class="admin-dish-input">
-                    <input type="text" id="admin-name-${plato.id}" value="${plato.nombre || ''}" placeholder="Plato ${plato.id}">
-                    <input type="number" id="admin-price-${plato.id}" value="${plato.precio || 0}" placeholder="Precio">
+                    <input type="text" id="admin-name-${plato.id}" value="${plato.nombre}" placeholder="Plato ${plato.id}">
+                    <input type="number" id="admin-price-${plato.id}" value="${plato.precio}" placeholder="Precio">
                 </div>
             `;
         });
     }
 
-    // Ventanas emergentes nativas completamente liberadas de bloqueos asincrónicos
+    // Tu función toggleAdmin() exacta basada en los carteles de prompt nativos
     function toggleAdmin() {
-        const panel = document.getElementById('admin-panel');
-        if (!panel.classList.contains('hidden')) {
-            panel.classList.add('hidden');
-            return;
-        }
-
         const usuarioInput = prompt("Introduce tu usuario de administrador:");
         if (usuarioInput === null) return;
 
-        const passInput = prompt("Introduce tu contraseña:");
+        const passInput = prompt("Introduce tu contraseña de administrador:");
         if (passInput === null) return;
 
         if(usuarioInput === ADMIN_USER && passInput === ADMIN_PASS) { 
-            panel.classList.remove('hidden');
-            window.scrollTo({ top: panel.offsetTop, behavior: 'smooth' });
+            document.getElementById('admin-panel').classList.toggle('hidden');
         } else {
-            alert("Usuario o contraseña incorrectos. Inténtalo de nuevo.");
+            alert("Usuario o contraseña incorrectos.");
         }
     }
 
@@ -274,22 +264,21 @@
             plato.precio = parseFloat(document.getElementById(`admin-price-${plato.id}`).value) || 0;
         });
 
-        // Garantizar el guardado inmediato en el dispositivo del administrador
+        // Guardamos copia de seguridad local instantánea
         localStorage.setItem('magma_menu_data', JSON.stringify(appData));
         renderApp();
         
         alert("¡Menú y fecha actualizados con éxito!");
         document.getElementById('admin-panel').classList.add('hidden');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
 
-        // Intentar impactar en la nube en background sin retrasar la respuesta de la web
+        // Subimos los datos a Supabase de fondo sin demorar la alerta de confirmación
         try {
             await supabase.from('configuracion_magma').upsert({ id: 1, fecha: appData.fecha });
             for (let plato of appData.platos) {
                 await supabase.from('menu_magma').upsert({ id: plato.id, nombre: plato.nombre, precio: plato.precio });
             }
         } catch(e) {
-            console.log("No se pudo sincronizar online, cambios resguardados localmente.");
+            console.log("Actualizado en la memoria local física del dispositivo.");
         }
     }
 
@@ -312,7 +301,7 @@
         let tieneItems = false;
 
         appData.platos.forEach((plato) => {
-            if(plato.nombre && plato.nombre.trim() !== "") {
+            if(plato.nombre.trim() !== "") {
                 const cant = parseInt(document.getElementById(`qty-${plato.id}`).value) || 0;
                 if(cant > 0) {
                     tieneItems = true;
@@ -340,7 +329,6 @@
         window.open(url, '_blank');
     }
 
-    // Arranque asíncrono e instantáneo protegido contra cuelgues
     window.onload = inicializarApp;
 </script>
 </body>
