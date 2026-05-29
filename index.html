@@ -84,7 +84,7 @@
         .btn:hover { background: #20ba5a; transform: translateY(-2px); }
         .admin-section { margin-top: 40px; border-top: 2px solid #eee; padding-top: 20px; text-align: center; }
         .btn-admin { background: #7f8c8d; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; }
-        .hidden { display: none; }
+        .hidden { display: none !important; }
         #admin-panel { background: #f9f9f9; padding: 20px; border-radius: 10px; margin-top: 20px; border: 1px solid #ddd; }
         .admin-dish-input { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 10px; }
     </style>
@@ -148,19 +148,17 @@
 </div>
 
 <script>
-    // --- AQUÍ CONECTAMOS CON SUPABASE ---
-    // LINEA 124: Reemplazá el texto de las comillas por tu link: https://akdytzcevheorkqmjhuc.supabase.co
+    // Credenciales e integración directa de Supabase
     const SUPABASE_URL = "https://akdytzcevheorkqmjhuc.supabase.co"; 
-    // LINEA 125: Reemplazá el texto de las comillas por tu clave larga de API (la que empieza con eyJhbG...)
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFrZHl0emNldmhlb3JrcW1qaHVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTY5MzMsImV4cCI6MjA5NTYzMjkzM30.fhAmo-APIVjSfzKQ7B1W5eFrR7h3B4fCQUEWu_U_4Pk";
-    // Inicializamos el conector oficial de la base de datos
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFrZHl0emNldmhlb3JrcW1qaHVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTY5MzMsImV4cCI6MjA5NTYzMjkzM30.fhAmo-APIVjSfzKQ7B1W5eFrR7h3B4fCQUEWu_U_4Pk"; 
+
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const WHATSAPP_NUM = "5491141819796"; 
     const ADMIN_USER = "viandasmagma";
     const ADMIN_PASS = "Rebizzo4810";
 
-    // Menú inicial por defecto (si internet falla, el negocio sigue abierto con esto)
+    // Datos iniciales de arranque inmediato
     let appData = {
         fecha: "29 / 05 / 2026",
         platos: [
@@ -170,44 +168,45 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
         ]
     };
 
-    // Estructuramos los 30 casilleros editables
+    // Crear los 30 renglones vacíos
     for (let i = appData.platos.length + 1; i <= 30; i++) {
         appData.platos.push({ id: i, nombre: "", precio: 0 });
     }
 
-    // Si guardaste algo antes en este dispositivo, lo recuerda para no perderlo
-    if(localStorage.getItem('magma_menu_data')) {
-        appData = JSON.parse(localStorage.getItem('magma_menu_data'));
+    // Estrategia de carga instantánea sin bloqueos
+    function inicializarApp() {
+        // 1. Mostrar de inmediato lo que esté guardado localmente en el navegador para que ande rápido
+        if(localStorage.getItem('magma_menu_data')) {
+            appData = JSON.parse(localStorage.getItem('magma_menu_data'));
+        }
+        renderApp();
+
+        // 2. Intentar traer los datos frescos de Supabase en segundo plano sin colgar los botones
+        bajarDatosDeLaNube();
     }
 
-    // TRAER DATOS DE INTERNET (Sincronización con Supabase)
     async function bajarDatosDeLaNube() {
         try {
-            // Buscamos la fecha guardada
             const { data: config, error: e1 } = await supabase.from('configuracion_magma').select('fecha').eq('id', 1).maybeSingle();
             if(!e1 && config && config.fecha) {
                 appData.fecha = config.fecha;
             }
 
-            // Buscamos los platos guardados
             const { data: nubesPlatos, error: e2 } = await supabase.from('menu_magma').select('*').order('id', { ascending: true });
             if(!e2 && nubesPlatos && nubesPlatos.length > 0) {
                 appData.platos = nubesPlatos;
-                // Nos aseguramos de mantener los 30 casilleros intactos
                 if(appData.platos.length < 30) {
                     for (let i = appData.platos.length + 1; i <= 30; i++) {
                         appData.platos.push({ id: i, nombre: "", precio: 0 });
                     }
                 }
             }
+            renderApp();
         } catch(err) {
-            console.log("No pudimos conectar con Supabase, usando datos locales de respaldo.");
+            console.log("Supabase no disponible momentáneamente. Usando almacenamiento local autónomo.");
         }
-        // Pase lo que pase con internet, dibujamos la pantalla al instante
-        renderApp();
     }
 
-    // Dibujar la interfaz en la pantalla
     function renderApp() {
         document.getElementById('display-date').innerText = appData.fecha;
         document.getElementById('admin-date-input').value = appData.fecha;
@@ -245,7 +244,7 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
         });
     }
 
-    // Ventanas emergentes clásicas para entrar al panel
+    // Ventanas emergentes nativas completamente liberadas de bloqueos asincrónicos
     function toggleAdmin() {
         const panel = document.getElementById('admin-panel');
         if (!panel.classList.contains('hidden')) {
@@ -267,7 +266,6 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
         }
     }
 
-    // SUBIR CAMBIOS A LA NUBE (Sincronización al guardar)
     async function guardarAdmin() {
         appData.fecha = document.getElementById('admin-date-input').value;
         
@@ -276,26 +274,25 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
             plato.precio = parseFloat(document.getElementById(`admin-price-${plato.id}`).value) || 0;
         });
 
-        // Guardamos copia local en la memoria física del equipo de edición
+        // Garantizar el guardado inmediato en el dispositivo del administrador
         localStorage.setItem('magma_menu_data', JSON.stringify(appData));
+        renderApp();
+        
+        alert("¡Menú y fecha actualizados con éxito!");
+        document.getElementById('admin-panel').classList.add('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
 
-        // Enviamos las actualizaciones en paralelo a Supabase sin bloquear la pantalla
+        // Intentar impactar en la nube en background sin retrasar la respuesta de la web
         try {
             await supabase.from('configuracion_magma').upsert({ id: 1, fecha: appData.fecha });
             for (let plato of appData.platos) {
                 await supabase.from('menu_magma').upsert({ id: plato.id, nombre: plato.nombre, precio: plato.precio });
             }
         } catch(e) {
-            console.log("No se pudo subir a Supabase, pero quedó seguro en la memoria local.");
+            console.log("No se pudo sincronizar online, cambios resguardados localmente.");
         }
-
-        renderApp();
-        alert("¡Menú y fecha actualizados con éxito!");
-        document.getElementById('admin-panel').classList.add('hidden');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Formatear y despachar comanda vía WhatsApp
     function enviarPedido() {
         const nombre = document.getElementById('client-name').value;
         const telefono = document.getElementById('client-phone').value;
@@ -343,8 +340,8 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
         window.open(url, '_blank');
     }
 
-    // Al encender la página, primero lee la nube y carga todo al instante
-    window.onload = bajarDatosDeLaNube;
+    // Arranque asíncrono e instantáneo protegido contra cuelgues
+    window.onload = inicializarApp;
 </script>
 </body>
 </html>
