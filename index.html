@@ -71,9 +71,7 @@
         }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-weight: bold; margin-bottom: 5px; }
-        .form-group input[type="text"], 
-        .form-group input[type="tel"],
-        .form-group input[type="password"] {
+        .form-group input[type="text"], .form-group input[type="tel"] {
             width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px;
         }
         .checkbox-group { display: flex; gap: 20px; margin: 15px 0; }
@@ -86,11 +84,9 @@
         .btn:hover { background: #20ba5a; transform: translateY(-2px); }
         .admin-section { margin-top: 40px; border-top: 2px solid #eee; padding-top: 20px; text-align: center; }
         .btn-admin { background: #7f8c8d; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; }
-        .hidden { display: none !important; }
-        #login-form-panel { background: #f0f3f4; padding: 20px; border-radius: 10px; margin-top: 20px; text-align: left; border: 1px solid #ccc; }
-        #admin-panel { background: #f9f9f9; padding: 20px; border-radius: 10px; margin-top: 20px; border: 1px solid #ddd; text-align: left; }
+        .hidden { display: none; }
+        #admin-panel { background: #f9f9f9; padding: 20px; border-radius: 10px; margin-top: 20px; border: 1px solid #ddd; }
         .admin-dish-input { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 10px; }
-        .loading { text-align: center; padding: 20px; font-weight: bold; color: var(--primary); }
     </style>
 </head>
 <body>
@@ -99,14 +95,14 @@
     <header>
         <h1>VIANDAS MAGMA</h1>
         <p class="love-text">Cocinado con amor, frescura y el toque casero que te abraza a mitad del día. ¡Que disfrutes tu almuerzo! ❤️</p>
-        <div class="menu-date">MENU ACTIVO FECHA: <span id="display-date">Cargando...</span></div>
+        <div class="menu-date">MENU ACTIVO FECHA: <span id="display-date">--/--/----</span></div>
         <div class="alert-box">⏰ Realizar pedido con 1:30 hs de anticipación para entregar lo más cercano al mediodía posible.</div>
     </header>
 
     <main>
-        <div id="loading-status" class="loading">Cargando el menú del día... 🍽️</div>
-        <form id="order-form" class="hidden">
-            <div id="menu-container"></div>
+        <form id="order-form">
+            <div id="menu-container">
+                </div>
 
             <hr style="border: 0; border-top: 2px dashed var(--secondary); margin: 30px 0;">
 
@@ -134,97 +130,84 @@
     </main>
 
     <div class="admin-section">
-        <button class="btn-admin" onclick="mostrarLogin()">⚙️ Ingreso Administrador</button>
-        
-        <div id="login-form-panel" class="hidden">
-            <h4>Acceso de Seguridad</h4>
-            <div class="form-group">
-                <label>Usuario:</label>
-                <input type="text" id="auth-user" placeholder="Usuario">
-            </div>
-            <div class="form-group">
-                <label>Contraseña:</label>
-                <input type="password" id="auth-pass" placeholder="••••••••">
-            </div>
-            <button type="button" class="btn" style="background:#5d6d7e; padding:10px;" onclick="verificarCredenciales()">Ingresar</button>
-        </div>
+        <button class="btn-admin" onclick="toggleAdmin()">⚙️ Ingreso Administrador</button>
         
         <div id="admin-panel" class="hidden">
             <h3>Panel de Control Magma</h3>
             <div class="form-group">
                 <label>Cambiar Fecha del Menú:</label>
-                <input type="text" id="admin-date-input">
+                <input type="text" id="admin-date-input" placeholder="Ej: 29 / 05 / 2026">
             </div>
             
             <h4>Editar Platos y Precios (Vaciar nombre para ocultar)</h4>
-            <div id="admin-dishes-container"></div>
-            <button type="button" class="btn" style="background:#3498db;" onclick="guardarAdmin()">💾 Guardar Cambios</button>
+            <div id="admin-dishes-container">
+                </div>
+            <button type="button" class="btn" style="background:#3498db;" onclick="guardarAdmin()">💾 Guardar Cambios del Día</button>
         </div>
     </div>
 </div>
 
 <script>
-    const SUPABASE_URL = "https://akdytzcevheorkqmjhuc.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFrZHl0emNldmhlb3JrcW1qaHVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTY5MzMsImV4cCI6MjA5NTYzMjkzM30.fhAmo-APIVjSfzKQ7B1W5eFrR7h3B4fCQUEWu_U_4Pk";
-    
+    // --- AQUÍ CONECTAMOS CON SUPABASE ---
+    // LINEA 124: Reemplazá el texto de las comillas por tu link: https://akdytzcevheorkqmjhuc.supabase.co
+    const SUPABASE_URL = "https://akdytzcevheorkqmjhuc.supabase.co"; 
+    // LINEA 125: Reemplazá el texto de las comillas por tu clave larga de API (la que empieza con eyJhbG...)
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFrZHl0emNldmhlb3JrcW1qaHVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTY5MzMsImV4cCI6MjA5NTYzMjkzM30.fhAmo-APIVjSfzKQ7B1W5eFrR7h3B4fCQUEWu_U_4Pk";
+    // Inicializamos el conector oficial de la base de datos
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const WHATSAPP_NUM = "5491141819796"; 
     const ADMIN_USER = "viandasmagma";
     const ADMIN_PASS = "Rebizzo4810";
 
-    let appData = { 
-        fecha: "29 / 05 / 2026", 
+    // Menú inicial por defecto (si internet falla, el negocio sigue abierto con esto)
+    let appData = {
+        fecha: "29 / 05 / 2026",
         platos: [
             { id: 1, nombre: "Milanesa con puré casero", precio: 4500 },
-            { id: 2, nombre: "Tartas individuales", precio: 3800 },
-            { id: 3, nombre: "Ensalada Completa Magma", precio: 4000 }
-        ] 
+            { id: 2, nombre: "Tartas individuales de verdura", precio: 3800 },
+            { id: 3, nombre: "Ensalada Completa Magma", precio: 4000 },
+        ]
     };
 
+    // Estructuramos los 30 casilleros editables
     for (let i = appData.platos.length + 1; i <= 30; i++) {
         appData.platos.push({ id: i, nombre: "", precio: 0 });
     }
 
-    if(localStorage.getItem('magma_backup_data')) {
-        appData = JSON.parse(localStorage.getItem('magma_backup_data'));
+    // Si guardaste algo antes en este dispositivo, lo recuerda para no perderlo
+    if(localStorage.getItem('magma_menu_data')) {
+        appData = JSON.parse(localStorage.getItem('magma_menu_data'));
     }
 
-    async function cargarDatos() {
-        const timeoutPlanB = setTimeout(() => {
-            console.log("Activando modo seguro por tiempo de espera.");
-            iniciarInterfaz();
-        }, 1500);
-
+    // TRAER DATOS DE INTERNET (Sincronización con Supabase)
+    async function bajarDatosDeLaNube() {
         try {
-            const { data: configData, error: errConfig } = await supabase.from('configuracion_magma').select('fecha').eq('id', 1).maybeSingle();
-            const { data: platosData, error: errPlatos } = await supabase.from('menu_magma').select('*').order('id', { ascending: true });
-            
-            if (!errConfig && configData && configData.fecha) appData.fecha = configData.fecha;
-            if (!errPlatos && platosData && platosData.length > 0) {
-                appData.platos = platosData;
+            // Buscamos la fecha guardada
+            const { data: config, error: e1 } = await supabase.from('configuracion_magma').select('fecha').eq('id', 1).maybeSingle();
+            if(!e1 && config && config.fecha) {
+                appData.fecha = config.fecha;
+            }
+
+            // Buscamos los platos guardados
+            const { data: nubesPlatos, error: e2 } = await supabase.from('menu_magma').select('*').order('id', { ascending: true });
+            if(!e2 && nubesPlatos && nubesPlatos.length > 0) {
+                appData.platos = nubesPlatos;
+                // Nos aseguramos de mantener los 30 casilleros intactos
                 if(appData.platos.length < 30) {
                     for (let i = appData.platos.length + 1; i <= 30; i++) {
                         appData.platos.push({ id: i, nombre: "", precio: 0 });
                     }
                 }
             }
-            
-            clearTimeout(timeoutPlanB);
-            iniciarInterfaz();
-        } catch (error) {
-            console.log("Error controlado. Cargando copia local.");
-            clearTimeout(timeoutPlanB);
-            iniciarInterfaz();
+        } catch(err) {
+            console.log("No pudimos conectar con Supabase, usando datos locales de respaldo.");
         }
-    }
-
-    function iniciarInterfaz() {
-        document.getElementById('loading-status').classList.add('hidden');
-        document.getElementById('order-form').classList.remove('hidden');
+        // Pase lo que pase con internet, dibujamos la pantalla al instante
         renderApp();
     }
 
+    // Dibujar la interfaz en la pantalla
     function renderApp() {
         document.getElementById('display-date').innerText = appData.fecha;
         document.getElementById('admin-date-input').value = appData.fecha;
@@ -238,13 +221,17 @@
         appData.platos.forEach((plato) => {
             if(plato.nombre && plato.nombre.trim() !== "") {
                 let options = '<option value="0">0</option>';
-                for(let i=1; i<=20; i++) { options += `<option value="${i}">${i}</option>`; }
+                for(let i=1; i<=20; i++) {
+                    options += `<option value="${i}">${i}</option>`;
+                }
 
                 menuContainer.innerHTML += `
                     <div class="dish-row">
                         <div class="dish-name">${plato.nombre}</div>
                         <div class="dish-price">$${plato.precio}</div>
-                        <div class="dish-qty"><select id="qty-${plato.id}">${options}</select></div>
+                        <div class="dish-qty">
+                            <select id="qty-${plato.id}">${options}</select>
+                        </div>
                     </div>
                 `;
             }
@@ -258,69 +245,73 @@
         });
     }
 
-    function mostrarLogin() {
-        const loginPanel = document.getElementById('login-form-panel');
-        const adminPanel = document.getElementById('admin-panel');
-        
-        if (!adminPanel.classList.contains('hidden')) {
-            adminPanel.classList.add('hidden');
+    // Ventanas emergentes clásicas para entrar al panel
+    function toggleAdmin() {
+        const panel = document.getElementById('admin-panel');
+        if (!panel.classList.contains('hidden')) {
+            panel.classList.add('hidden');
             return;
         }
-        loginPanel.classList.toggle('hidden');
-    }
 
-    function verificarCredenciales() {
-        const user = document.getElementById('auth-user').value;
-        const pass = document.getElementById('auth-pass').value;
+        const usuarioInput = prompt("Introduce tu usuario de administrador:");
+        if (usuarioInput === null) return;
 
-        if (user === ADMIN_USER && pass === ADMIN_PASS) {
-            document.getElementById('login-form-panel').classList.add('hidden');
-            document.getElementById('admin-panel').classList.remove('hidden');
-            document.getElementById('auth-user').value = "";
-            document.getElementById('auth-pass').value = "";
-            window.scrollTo({ top: document.getElementById('admin-panel').offsetTop, behavior: 'smooth' });
+        const passInput = prompt("Introduce tu contraseña:");
+        if (passInput === null) return;
+
+        if(usuarioInput === ADMIN_USER && passInput === ADMIN_PASS) { 
+            panel.classList.remove('hidden');
+            window.scrollTo({ top: panel.offsetTop, behavior: 'smooth' });
         } else {
-            alert("Usuario o contraseña incorrectos.");
+            alert("Usuario o contraseña incorrectos. Inténtalo de nuevo.");
         }
     }
 
+    // SUBIR CAMBIOS A LA NUBE (Sincronización al guardar)
     async function guardarAdmin() {
-        const nuevaFecha = document.getElementById('admin-date-input').value;
-        appData.fecha = nuevaFecha;
-
+        appData.fecha = document.getElementById('admin-date-input').value;
+        
         appData.platos.forEach((plato) => {
             plato.nombre = document.getElementById(`admin-name-${plato.id}`).value;
             plato.precio = parseFloat(document.getElementById(`admin-price-${plato.id}`).value) || 0;
         });
 
-        localStorage.setItem('magma_backup_data', JSON.stringify(appData));
+        // Guardamos copia local en la memoria física del equipo de edición
+        localStorage.setItem('magma_menu_data', JSON.stringify(appData));
 
+        // Enviamos las actualizaciones en paralelo a Supabase sin bloquear la pantalla
         try {
-            // Re-verificar inserción segura en Supabase
-            await supabase.from('configuracion_magma').upsert({ id: 1, fecha: nuevaFecha });
+            await supabase.from('configuracion_magma').upsert({ id: 1, fecha: appData.fecha });
             for (let plato of appData.platos) {
                 await supabase.from('menu_magma').upsert({ id: plato.id, nombre: plato.nombre, precio: plato.precio });
             }
-        } catch (e) {
-            console.log("Error al sincronizar con Supabase, pero quedó guardado en el dispositivo.");
+        } catch(e) {
+            console.log("No se pudo subir a Supabase, pero quedó seguro en la memoria local.");
         }
 
-        alert("¡Cambios guardados con éxito!");
-        document.getElementById('admin-panel').classList.add('hidden');
         renderApp();
+        alert("¡Menú y fecha actualizados con éxito!");
+        document.getElementById('admin-panel').classList.add('hidden');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    // Formatear y despachar comanda vía WhatsApp
     function enviarPedido() {
         const nombre = document.getElementById('client-name').value;
         const telefono = document.getElementById('client-phone').value;
         const direccion = document.getElementById('client-address').value;
         const entrega = document.querySelector('input[name="delivery-type"]:checked').value;
 
-        if(!nombre || !telefono || !direccion) { alert("Por favor, completa todos los datos de entrega."); return; }
+        if(!nombre || !telefono || !direccion) {
+            alert("Por favor, completa todos los datos de entrega.");
+            return;
+        }
 
         let total = 0;
-        let comandatexto = `🔥 *VIANDAS MAGMA - PEDIDO DE ALMUERZO* 🔥\n📅 *Fecha:* ${appData.fecha}\n-----------------------------------------\n\n`;
+        let comandatexto = `🔥 *VIANDAS MAGMA - PEDIDO DE ALMUERZO* 🔥\n`;
+        comandatexto += `📅 *Fecha:* ${appData.fecha}\n`;
+        comandatexto += `-----------------------------------------\n\n`;
+        
         let tieneItems = false;
 
         appData.platos.forEach((plato) => {
@@ -328,19 +319,32 @@
                 const cant = parseInt(document.getElementById(`qty-${plato.id}`).value) || 0;
                 if(cant > 0) {
                     tieneItems = true;
-                    total += cant * plato.precio;
+                    let subtotal = cant * plato.precio;
+                    total += subtotal;
                     comandatexto += `▪️ *${cant}x* ${plato.nombre} ($${plato.precio} c/u)\n`;
                 }
             }
         });
 
-        if(!tieneItems) { alert("Por favor, selecciona al menos un plato."); return; }
+        if(!tieneItems) {
+            alert("Por favor, selecciona al menos un plato para tu almuerzo.");
+            return;
+        }
 
-        comandatexto += `\n-----------------------------------------\n💰 *TOTAL:* $${total}\n\n👤 *Cliente:* ${nombre}\n📞 *Teléfono:* ${telefono}\n📍 *Dirección/Barrio:* ${direccion}\n🛵 *Modalidad:* ${entrega}\n\n_Pedido enviado desde la App Web_ ✨`;
-        window.open(`https://api.whatsapp.com/send?phone=${WHATSAPP_NUM}&text=${encodeURIComponent(comandatexto)}`, '_blank');
+        comandatexto += `\n-----------------------------------------\n`;
+        comandatexto += `💰 *TOTAL:* $${total}\n\n`;
+        comandatexto += `👤 *Cliente:* ${nombre}\n`;
+        comandatexto += `📞 *Teléfono:* ${telefono}\n`;
+        comandatexto += `📍 *Dirección/Barrio:* ${direccion}\n`;
+        comandatexto += `🛵 *Modalidad:* ${entrega}\n\n`;
+        comandatexto += `_Pedido enviado desde la App Web_ ✨`;
+
+        const url = `https://api.whatsapp.com/send?phone=${WHATSAPP_NUM}&text=${encodeURIComponent(comandatexto)}`;
+        window.open(url, '_blank');
     }
 
-    window.onload = cargarDatos;
+    // Al encender la página, primero lee la nube y carga todo al instante
+    window.onload = bajarDatosDeLaNube;
 </script>
 </body>
 </html>
