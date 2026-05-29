@@ -173,7 +173,6 @@
     const ADMIN_USER = "viandasmagma";
     const ADMIN_PASS = "Rebizzo4810";
 
-    // Valores por defecto de respaldo absoluto si internet o Supabase fallan
     let appData = { 
         fecha: "29 / 05 / 2026", 
         platos: [
@@ -183,34 +182,38 @@
         ] 
     };
 
-    // Completar el molde de 30 platos
     for (let i = appData.platos.length + 1; i <= 30; i++) {
         appData.platos.push({ id: i, nombre: "", precio: 0 });
     }
 
-    // Intentar leer de la memoria local guardada si existe
     if(localStorage.getItem('magma_backup_data')) {
         appData = JSON.parse(localStorage.getItem('magma_backup_data'));
     }
 
     async function cargarDatos() {
-        // Lanzamos un temporizador de emergencia: si Supabase tarda más de 2.5 segundos, activa el plan B
         const timeoutPlanB = setTimeout(() => {
-            console.log("Supabase tardó mucho o fue bloqueado por red. Activando modo seguro.");
+            console.log("Activando modo seguro por tiempo de espera.");
             iniciarInterfaz();
-        }, 2500);
+        }, 1500);
 
         try {
-            const { data: configData, error: errConfig } = await supabase.from('configuracion_magma').select('fecha').eq('id', 1).single();
+            const { data: configData, error: errConfig } = await supabase.from('configuracion_magma').select('fecha').eq('id', 1).maybeSingle();
             const { data: platosData, error: errPlatos } = await supabase.from('menu_magma').select('*').order('id', { ascending: true });
             
-            if (!errConfig && configData) appData.fecha = configData.fecha;
-            if (!errPlatos && platosData && platosData.length > 0) appData.platos = platosData;
+            if (!errConfig && configData && configData.fecha) appData.fecha = configData.fecha;
+            if (!errPlatos && platosData && platosData.length > 0) {
+                appData.platos = platosData;
+                if(appData.platos.length < 30) {
+                    for (let i = appData.platos.length + 1; i <= 30; i++) {
+                        appData.platos.push({ id: i, nombre: "", precio: 0 });
+                    }
+                }
+            }
             
-            clearTimeout(timeoutPlanB); // Supabase respondió a tiempo, cancelamos la emergencia
+            clearTimeout(timeoutPlanB);
             iniciarInterfaz();
         } catch (error) {
-            console.log("Error de conexión. Usando respaldo incorporado.");
+            console.log("Error controlado. Cargando copia local.");
             clearTimeout(timeoutPlanB);
             iniciarInterfaz();
         }
@@ -290,17 +293,16 @@
             plato.precio = parseFloat(document.getElementById(`admin-price-${plato.id}`).value) || 0;
         });
 
-        // 1. Guardar copia en el dispositivo por si acaso
         localStorage.setItem('magma_backup_data', JSON.stringify(appData));
 
-        // 2. Intentar guardar en la nube de Supabase silenciosamente
         try {
-            await supabase.from('configuracion_magma').update({ fecha: nuevaFecha }).eq('id', 1);
+            // Re-verificar inserción segura en Supabase
+            await supabase.from('configuracion_magma').upsert({ id: 1, fecha: nuevaFecha });
             for (let plato of appData.platos) {
-                await supabase.from('menu_magma').update({ nombre: plato.nombre, precio: plato.precio }).eq('id', plato.id);
+                await supabase.from('menu_magma').upsert({ id: plato.id, nombre: plato.nombre, precio: plato.precio });
             }
         } catch (e) {
-            console.log("No se pudo sincronizar online debido a las restricciones de red, pero quedó guardado localmente.");
+            console.log("Error al sincronizar con Supabase, pero quedó guardado en el dispositivo.");
         }
 
         alert("¡Cambios guardados con éxito!");
