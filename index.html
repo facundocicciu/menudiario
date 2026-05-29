@@ -71,7 +71,9 @@
         }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-weight: bold; margin-bottom: 5px; }
-        .form-group input[type="text"], .form-group input[type="tel"] {
+        .form-group input[type="text"], 
+        .form-group input[type="tel"],
+        .form-group input[type="password"] {
             width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px;
         }
         .checkbox-group { display: flex; gap: 20px; margin: 15px 0; }
@@ -84,7 +86,8 @@
         .btn:hover { background: #20ba5a; transform: translateY(-2px); }
         .admin-section { margin-top: 40px; border-top: 2px solid #eee; padding-top: 20px; text-align: center; }
         .btn-admin { background: #7f8c8d; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; }
-        .hidden { display: none; }
+        .hidden { display: none !important; }
+        #login-form-panel { background: #f0f3f4; padding: 20px; border-radius: 10px; margin-top: 20px; text-align: left; border: 1px solid #ccc; }
         #admin-panel { background: #f9f9f9; padding: 20px; border-radius: 10px; margin-top: 20px; border: 1px solid #ddd; text-align: left; }
         .admin-dish-input { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 10px; }
         .loading { text-align: center; padding: 20px; font-weight: bold; color: var(--primary); }
@@ -131,7 +134,20 @@
     </main>
 
     <div class="admin-section">
-        <button class="btn-admin" onclick="toggleAdmin()">⚙️ Ingreso Administrador</button>
+        <button class="btn-admin" onclick="mostrarLogin()">⚙️ Ingreso Administrador</button>
+        
+        <div id="login-form-panel" class="hidden">
+            <h4>Acceso de Seguridad</h4>
+            <div class="form-group">
+                <label>Usuario:</label>
+                <input type="text" id="auth-user" placeholder="Usuario">
+            </div>
+            <div class="form-group">
+                <label>Contraseña:</label>
+                <input type="password" id="auth-pass" placeholder="••••••••">
+            </div>
+            <button type="button" class="btn" style="background:#5d6d7e; padding:10px;" onclick="verificarCredenciales()">Ingresar</button>
+        </div>
         
         <div id="admin-panel" class="hidden">
             <h3>Panel de Control Magma</h3>
@@ -148,7 +164,7 @@
 </div>
 
 <script>
-    // URL y API Key de tu Supabase Vinculadas Exitosamente
+    // Configuración de Supabase integrada
     const SUPABASE_URL = "https://akdytzcevheorkqmjhuc.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFrZHl0emNldmhlb3JrcW1qaHVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTY5MzMsImV4cCI6MjA5NTYzMjkzM30.fhAmo-APIVjSfzKQ7B1W5eFrR7h3B4fCQUEWu_U_4Pk";
     
@@ -160,15 +176,12 @@
 
     let appData = { fecha: "", platos: [] };
 
-    // Cargar datos reales desde Supabase
     async function cargarDatosDesdeSupabase() {
         try {
-            // 1. Traer la fecha
             const { data: configData, error: errConfig } = await supabase.from('configuracion_magma').select('fecha').eq('id', 1).single();
             if (errConfig) throw errConfig;
             appData.fecha = configData.fecha;
 
-            // 2. Traer los 30 platos ordenados por ID
             const { data: platosData, error: errPlatos } = await supabase.from('menu_magma').select('*').order('id', { ascending: true });
             if (errPlatos) throw errPlatos;
             appData.platos = platosData;
@@ -178,7 +191,7 @@
             renderApp();
         } catch (error) {
             console.error("Error al conectar con Supabase:", error);
-            document.getElementById('loading-status').innerText = "❌ Error al cargar el menú. Asegúrate de ejecutar el código SQL en Supabase.";
+            document.getElementById('loading-status').innerText = "❌ Error al cargar el menú.";
         }
     }
 
@@ -215,32 +228,41 @@
         });
     }
 
-    function toggleAdmin() {
-        const panel = document.getElementById('admin-panel');
-        if (!panel.classList.contains('hidden')) { panel.classList.add('hidden'); return; }
+    function mostrarLogin() {
+        const loginPanel = document.getElementById('login-form-panel');
+        const adminPanel = document.getElementById('admin-panel');
+        
+        if (!adminPanel.classList.contains('hidden')) {
+            adminPanel.classList.add('hidden');
+            return;
+        }
+        loginPanel.classList.toggle('hidden');
+    }
 
-        const usuarioInput = prompt("Introduce tu usuario de administrador:");
-        if (usuarioInput === null) return;
-        const passInput = prompt("Introduce tu contraseña:");
-        if (passInput === null) return;
+    function verificarCredenciales() {
+        const user = document.getElementById('auth-user').value;
+        const pass = document.getElementById('auth-pass').value;
 
-        if(usuarioInput === ADMIN_USER && passInput === ADMIN_PASS) { 
-            panel.classList.remove('hidden');
-            window.scrollTo({ top: panel.offsetTop, behavior: 'smooth' });
+        if (user === ADMIN_USER && pass === ADMIN_PASS) {
+            document.getElementById('login-form-panel').classList.add('hidden');
+            document.getElementById('admin-panel').classList.remove('hidden');
+            
+            // Limpiar inputs de login por seguridad
+            document.getElementById('auth-user').value = "";
+            document.getElementById('auth-pass').value = "";
+            
+            window.scrollTo({ top: document.getElementById('admin-panel').offsetTop, behavior: 'smooth' });
         } else {
             alert("Usuario o contraseña incorrectos.");
         }
     }
 
-    // Guardar cambios directamente en Supabase
     async function guardarAdmin() {
         const nuevaFecha = document.getElementById('admin-date-input').value;
         
         try {
-            // Actualizar fecha en la nube
             await supabase.from('configuracion_magma').update({ fecha: nuevaFecha }).eq('id', 1);
 
-            // Preparar y enviar las actualizaciones de los 30 platos
             for (let plato of appData.platos) {
                 const nuevoNombre = document.getElementById(`admin-name-${plato.id}`).value;
                 const nuevoPrecio = parseFloat(document.getElementById(`admin-price-${plato.id}`).value) || 0;
@@ -248,7 +270,7 @@
                 await supabase.from('menu_magma').update({ nombre: nuevoNombre, precio: nuevoPrecio }).eq('id', plato.id);
             }
 
-            alert("¡Menú guardado en la nube con éxito! Todos tus clientes ya lo pueden ver.");
+            alert("¡Menú guardado en la nube con éxito!");
             document.getElementById('admin-panel').classList.add('hidden');
             cargarDatosDesdeSupabase(); 
             window.scrollTo({ top: 0, behavior: 'smooth' });
